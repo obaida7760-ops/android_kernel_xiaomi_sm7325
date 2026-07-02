@@ -1,0 +1,33 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git bc bison flex libssl-dev libelf-dev build-essential device-tree-compiler zip clang llvm lld
+
+      - name: Merge KernelSU-Next
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/rifsxd/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+
+      - name: Enable KSU config
+        run: echo "CONFIG_KSU=y" >> arch/arm64/configs/<اسم_defconfig>
+
+      - name: Build kernel
+        run: |
+          make O=out ARCH=arm64 CC=clang <اسم_defconfig>
+          make -j$(nproc) O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu-
+
+      - name: Upload kernel image
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-image
+          path: out/arch/arm64/boot/Image.gz-dtb
